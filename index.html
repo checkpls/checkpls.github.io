@@ -4,9 +4,14 @@
 	<meta charset="UTF-8">
 	<title></title>
   <style>
-    section{margin: 2rem;padding:2rem;border: 1px solid #333;}
+    section{margin:2rem 0.5rem ;padding: 2rem 0.5rem;border: 1px solid #333;}
     .pdf{height: 500px;}
   </style>
+  <script>
+    var {href} = location;
+    var parts = href.split('/');
+    var siteUrl = parts.slice(0, parts.length-1).join('/');
+  </script>
 </head>
 <body>
 
@@ -55,12 +60,9 @@
         <script src="script/adobe.js"></script>
         <script type="text/javascript">
           document.addEventListener("adobe_dc_view_sdk.ready", function(){
-            var adobeDCView = new AdobeDC.View({clientId: "<YOUR_CLIENT_ID>", divId: "adobe-dc-view"});
-            var {href} = location;
-            var parts = href.split('/');
-            var url = parts.slice(0, parts.length-1).join('/');console.log(url)
+            var adobeDCView = new AdobeDC.View({clientId: "9c5fb89fb140428f995f9fa3663221de", divId: "adobe-dc-view"});
             adobeDCView.previewFile({
-              content:{location: {url: `${url}/pdf/sample-multipage.pdf`}},
+              content:{location: {url: `${siteUrl}/pdf/sample-multipage.pdf`}},
               metaData:{fileName: "sample multipage.pdf"}
             }, {});
           });
@@ -80,7 +82,53 @@
     <section>
       <h2>pdf-js</h2>
       <div class="pdf">
+        <script src="script/pdf.js"></script>
+        <canvas id="the-canvas"></canvas>
+        <script>
+          // If absolute URL from the remote server is provided, configure the CORS
+          // header on that server.
+          var url = `${siteUrl}/pdf/sample-multipage.pdf`;
 
+          // Loaded via <script> tag, create shortcut to access PDF.js exports.
+          var pdfjsLib = window['pdfjs-dist/build/pdf'];
+
+          // The workerSrc property shall be specified.
+          pdfjsLib.GlobalWorkerOptions.workerSrc = `${siteUrl}/script/pdf.worker.js`;
+
+          // Asynchronous download of PDF
+          var loadingTask = pdfjsLib.getDocument(url);
+          loadingTask.promise.then(function(pdf) {
+            console.log('PDF loaded');
+
+            // Fetch the first page
+            var pageNumber = 1;
+            pdf.getPage(pageNumber).then(function(page) {
+              console.log('Page loaded');
+
+              var scale = 1.5;
+              var viewport = page.getViewport({scale: scale});
+
+              // Prepare canvas using PDF page dimensions
+              var canvas = document.getElementById('the-canvas');
+              var context = canvas.getContext('2d');
+              canvas.height = viewport.height;
+              canvas.width = viewport.width;
+
+              // Render PDF page into canvas context
+              var renderContext = {
+                canvasContext: context,
+                viewport: viewport
+              };
+              var renderTask = page.render(renderContext);
+              renderTask.promise.then(function () {
+                console.log('Page rendered');
+              });
+            });
+          }, function (reason) {
+            // PDF loading error
+            console.error(reason);
+          });
+        </script>
       </div>
     </section>
 
